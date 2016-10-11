@@ -30,7 +30,8 @@ error () { logger -t probcomp-acme -p daemon.error ${1+"$@"}; }
     date="`date +%Y%m%dT%H%M%SZ`"
     cert_date="$CERTS"/"$cert_base$date".pem
     ca_date="$CERTS"/"$cert_base$date"-ca.pem
-    chain_date="$CERTS"/"$cert_base$date"-chain.pem
+    chain_file="$cert_base$date"-chain.pem
+    chain_date="$CERTS"/"$chain_file"
     chain_link="$CERTS"/"$cert_base"chain.pem
 
     ok=
@@ -59,7 +60,7 @@ error () { logger -t probcomp-acme -p daemon.error ${1+"$@"}; }
     cat -- "$cert_date" "$ca_date" > "$chain_date".tmp
     mv -f -- "$chain_date".tmp "$chain_date"
 
-    ln -s -- "$chain_date" "$chain_link".tmp
+    ln -s -- "$chain_file" "$chain_link".tmp
     mv -f -- "$chain_link".tmp "$chain_link"
 
     info 'certificate renewed'
