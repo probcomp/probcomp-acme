@@ -63,9 +63,9 @@ very short.  There's no time for futzing and kludging, my friend.
 
         /usr/local/probcomp/acme/current/renew --i-know-what-i-am-doing
 
-   as probcomp-acme every sixty days, or every month, or the first
-   Monday of every month, or whatever is necessary to get it done
-   within the 90 day expiration period that works with your schedule.
+   every sixty days, or every month, or the first Monday of every
+   month, or whatever is necessary to get it done within the 90 day
+   expiration period that works with your schedule.
 
 * How it is organized:
 

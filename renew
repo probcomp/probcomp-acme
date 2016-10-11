@@ -4,7 +4,7 @@ set -Ceu
 
 SCRIPTS="`dirname -- "$0"`"
 
-sudo -u probcomp-acme "$SCRIPTS"/renew.unpriv
+sudo -u probcomp-acme "$SCRIPTS"/renew.unpriv ${1+"$@"}
 if nginx -t >/dev/null 2>&1; then
     service nginx reload
 else
