@@ -29,48 +29,54 @@ very short.  There's no time for futzing and kludging, my friend.
 
         # /usr/local/probcomp/acme/current/setup probcomp-N.csail.mit.edu
 
-   to create the acme user, the acme group, and the directories
-   /etc/acme and /var/lib/acme.
+   to create the probcomp-acme user, the probcomp-acme group, and the
+   directories /etc/probcomp-acme and /var/lib/probcomp-acme.
 
-5. Acquire an account key and store it in /etc/acme/account.key.  If
-   you already have one from certbot, you can turn it into the right
-   form for /etc/acme/account.key using the certbot2asn1 script as
+5. Acquire an account key at /etc/probcomp-acme/account.key.  If you
+   already have one from certbot, you can turn it into the right form
+   for /etc/probcomp-acme/account.key using the certbot2asn1 script as
    documented in comments at the top.  If you don't already have one,
    you can get one with certbot, or by writing code to talk this part
-   of the ACME protocol.
+   of the ACME protocol.  Then make it readable by probcomp-acme:
 
-6. Configure the web server to serve /var/lib/acme/challenges from
-   http://probcomp-N.csail.mit.edu/.well-known/challenge, and to serve
-   HTTPS using the certificate chain at /etc/acme/domain.crt and the
-   private key at /etc/acme/domain.key.
+	# chmod 640 /etc/probcomp-acme/account.key
+	# chown root:probcomp-acme /etc/probcomp-acme/account.key
+
+6. Configure the web server to serve /var/lib/probcomp-acme/challenges
+   from http://probcomp-N.csail.mit.edu/.well-known/challenge.
 
 7. Run
 
-        # /usr/local/probcomp/acme/current/renew
+        # sudo -u probcomp-acme /usr/local/probcomp/acme/current/renew
 
    Check the syslog to make sure it claimed to have successfully
    renewed the test certificate.  Check to make sure
-   /var/lib/acme/certs/test-chain.pem points to a file that contains
-   two certificates -- a newly issued fake one, and the true
+   /var/lib/probcomp-acme/certs/test-chain.pem points to a file that
+   contains two certificates -- a newly issued fake one, and the true
    intermediate CA certificate for Let's Encrypt.
 
-8. Add a cron job to execute
+8. Configure the web server to serve HTTPS using the certificate chain
+   at /etc/probcomp-acme/domain.crt and the private key at
+   /etc/probcomp-acme/domain.key.
+
+9. Add a cron job to execute
 
         /usr/local/probcomp/acme/current/renew --i-know-what-i-am-doing
 
-   every sixty days, or every month, or the first Monday of every
-   month, or whatever is necessary to get .
+   as probcomp-acme every sixty days, or every month, or the first
+   Monday of every month, or whatever is necessary to get it done
+   within the 90 day expiration period that works with your schedule.
 
 * How it is organized:
 
-/etc/acme               static files readable only by web server and acme user
+/etc/probcomp-acme      static files readable only by web server and acme user
                           (all secrets live here)
   /account.key          ACME account private key
   /domain.key           private key for the domain name
   /domain.csr           certificate signing request for the domain name
   /domain.crt           symlink to current certificate chain
 
-/var/lib/acme           dynamic files written by acme user, read by web server
+/var/lib/probcomp-acme  dynamic files written by acme user, read by web server
                           (no secrets live here)
   /certs                directory of all certificates issued
     /chain.pem          symlink to current certificate chain
