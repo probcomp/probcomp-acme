@@ -1,5 +1,6 @@
 ACME configuration for the probcomp-N servers, using acme_tiny
-<https://github.com/diafygi/acme-tiny>.
+<https://github.com/diafygi/acme-tiny>.  This repository DOES NOT
+contain any secrets.
 
 * How to use it:
 
