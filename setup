@@ -27,9 +27,9 @@ clean ()
     rmdir /var/lib/probcomp-acme/challenges
     deluser --system probcomp-acme      # also deletes group
     rmdir /var/lib/probcomp-acme
-    rm /etc/probcomp-acme/domain.key
-    rm /etc/probcomp-acme/domain.csr
-    rm /etc/probcomp-acme/domain.crt
+    rm -f /etc/probcomp-acme/domain.key || :
+    rm -f /etc/probcomp-acme/domain.csr || :
+    rm -f /etc/probcomp-acme/domain.crt || :
     rmdir /etc/probcomp-acme
 }
 
