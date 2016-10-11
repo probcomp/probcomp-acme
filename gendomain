@@ -1,0 +1,54 @@
+#!/bin/sh
+
+set -Ceu
+
+# Script to generate a private key and certificate signing request in
+# PEM format for use with acme_tiny for the ACME protocol to acquire a
+# certificate from Let's Encrypt.  Written by Riastradh 20161010.
+# Public domain.
+
+progname="`basename -- "$0"`"
+
+usage ()
+{
+    printf >&2 'Usage: %s -d <domain> -k <keyfile> -r <csrfile>\n' "$progname"
+    printf >&2 '  Generates a private key and stores it in <keyfile>.\n'
+    printf >&2 '  Generates a certificate request for <domain> using the\n'
+    printf >&2 '    private key and stores it in <csrfile>.\n'
+    printf >&2 '\n'
+    printf >&2 'Example: %s -d sub.example.com -k ./sub.key -r ./sub.csr\n' \
+	"$progname"
+    exit 1
+}
+
+domain=
+keyfile=
+csrfile=
+
+while getopts d:k:r: f; do
+    case $f in
+	d) domain=$OPTARG;;
+	k) keyfile=$OPTARG;;
+	r) csrfile=$OPTARG;;
+	\?|*) usage;;
+    esac
+done
+
+if [ -z "$domain" -o -z "$keyfile" -o -z "$csrfile" ]; then
+    usage
+fi
+
+ok=
+
+clean ()
+{
+    [ -n "$ok" ] && return
+    rm -f "$keyfile"
+    rm -f "$csrfile"
+}
+trap clean EXIT HUP INT TERM
+
+openssl genrsa 4096 > "$keyfile"
+openssl req -new -sha256 -key "$keyfile" -subj "/CN=$domain" > "$csrfile"
+
+ok=1

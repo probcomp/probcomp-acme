@@ -1,0 +1,71 @@
+#!/bin/sh
+
+set -Ceu
+
+# Script to renew a certificate with acme_tiny for the probcomp-N site
+# configuration.  Written by Riastradh 20161010.
+
+ACME_TINY="`dirname -- "$0"`"/acme_tiny.py
+CERTS=/var/lib/acme/certs
+CHALLENGES=/var/lib/acme/challenges
+KEYS=/etc/acme
+CA_URI=https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem
+
+info () { logger -t acme -p daemon.info ${1+"$@"}; }
+error () { logger -t acme -p daemon.error ${1+"$@"}; }
+
+(
+    set -Ceu
+
+    if [ $# -eq 1 ] && [ x"$1" = x--i-know-what-i-am-doing ]; then
+	caflags=			# Use the real issuer.
+	cert_base=
+	info 'attempting certificate renewal'
+    else
+	caflags='--ca https://acme-staging.api.letsencrypt.org'
+	cert_base=test-
+	info 'attempting certificate renewal test'
+    fi
+
+    date="`date +%Y%m%dT%H%M%SZ`"
+    cert_date="$CERTS"/"$cert_base$date".pem
+    ca_date="$CERTS"/"$cert_base$date"-ca.pem
+    chain_date="$CERTS"/"$cert_base$date"-chain.pem
+    chain_link="$CERTS"/"$cert_base"chain.pem
+
+    ok=
+    clean ()
+    {
+	if [ -z "$ok" ]; then
+	    echo 'acme failed, check syslog' | sendmail root || :
+	    error 'certificate renewal failed'
+	fi
+	rm -f "$cert_date".tmp || :
+	rm -f "$ca_date".tmp || :
+	rm -f "$chain_date".tmp || :
+	rm -f "$chain_link".tmp || :
+    }
+    trap clean EXIT HUP INT TERM
+
+    /usr/bin/python -- "$ACME_TINY" \
+	--account-key "$KEYS"/account.key \
+	--csr "$KEYS"/domain.csr \
+	--acme-dir "$CHALLENGES" \
+	--quiet \
+	$caflags \
+	> "$cert_date".tmp
+    mv -f -- "$cert_date".tmp "$cert_date"
+
+    wget --no-verbose -O "$ca_date".tmp -- "$CA_URI"
+    mv -f -- "$ca_date".tmp "$ca_date"
+
+    cat -- "$cert_date" "$ca_date" > "$chain_date".tmp
+    mv -f -- "$chain_date".tmp "$chain_date"
+
+    ln -s -- "$chain_date" "$chain_link".tmp
+    mv -f -- "$chain_link".tmp "$chain_link"
+
+    service nginx reload
+    info 'certificate renewed'
+    ok=1
+) 2>&1 >/dev/null | error

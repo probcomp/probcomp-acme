@@ -1,0 +1,61 @@
+#!/usr/bin/python
+
+# Script to convert certbot private_key.json files to ASN1 text-form
+# for use with `openssl asn1parse'.  Written by Riastradh 20161010.
+# Public domain.
+#
+# Usage: ./certbot < /etc/letsencrypt/accounts/acme-v01.api.letsencrypt.org/directory/<hash>/private_key.json | openssl asn1parse -genconf /dev/stdin -out /dev/stdout -noout | openssl rsa -inform DER > private_key.pem
+#
+# Used to get a PEM key file out of an existing account registration
+# made with certbot so we don't need to adopt any code to do account
+# registration.
+
+import base64
+import binascii
+import json
+import sys
+
+def b64_to_hex(data_b64, context):
+    npad = (len(data_b64) + 4) % 4
+    pad = b'=' * npad
+    data_b64pad = data_b64 + pad
+    try:
+        data = base64.b64decode(data_b64pad, b'-_')
+    except:
+        print >>sys.stderr, b'Invalid data for %s.' % (context,)
+        sys.exit(1)
+    data_hex = binascii.hexlify(data)
+    return b'0x' + data_hex.upper()
+
+def recode(json, key, name):
+    if key not in json:
+        print >>sys.stderr, b'Missing entry: %s' % (key,)
+        sys.exit(1)
+    data_b64_u = json[key]
+    data_b64 = data_b64_u.encode()
+    data_hex = b64_to_hex(data_b64, name)
+    print b'%s=INTEGER:%s' % (name, data_hex)
+
+try:
+    key_json = json.load(sys.stdin)
+except:
+    print >>sys.stderr, b'Invalid key file'
+    sys.exit(1)
+if u'kty' not in key_json:
+    print >>sys.stderr, b'Missing key type'
+    sys.exit(1)
+if key_json[u'kty'] != u'RSA':
+    print >>sys.stderr, b'Non-RSA key'
+    sys.exit(1)
+
+print b'asn1=SEQUENCE:private_key'
+print b'[private_key]'
+print b'version=INTEGER:0'
+recode(key_json, u'n', b'n')
+recode(key_json, u'e', b'e')
+recode(key_json, u'd', b'd')
+recode(key_json, u'p', b'p')
+recode(key_json, u'q', b'q')
+recode(key_json, u'dp', b'dp')
+recode(key_json, u'dq', b'dq')
+recode(key_json, u'qi', b'qi')
