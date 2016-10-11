@@ -1,0 +1,102 @@
+ACME configuration for the probcomp-N servers, using acme_tiny
+<https://github.com/diafygi/acme-tiny>.
+
+* How to use it:
+
+1. On probcomp-N.csail.mit.edu, create the directory:
+
+        # cd /usr/local
+        # mkdir -p probcomp
+        # mkdir probcomp/acme
+
+If that fails, stop here and figure out why -- someone has already
+installed this on probcomp-N.  Talk to them.  Don't barge ahead and
+change things you don't understand.  You can work it out.  Life is
+very short.  There's no time for futzing and kludging, my friend.
+
+2. If today's date is YYYYMMDD, extract the content of the repository
+   into /usr/local/probcomp/acme/YYYYMMDD:
+
+        # mkdir /usr/local/probcomp/acme/YYYYMMDD
+        # cd /usr/local/probcomp/acme/YYYYMMDD
+        # (git archive --format=tar /path/to/probcomp-acme HEAD) | tar xvf -
+
+3. Create a symlink pointing to this date:
+
+        # ln -s YYYYMMDD /usr/local/probcomp/acme/current
+
+4. Execute
+
+        # /usr/local/probcomp/acme/current/setup probcomp-N.csail.mit.edu
+
+   to create the acme user, the acme group, and the directories
+   /etc/acme and /var/lib/acme.
+
+5. Acquire an account key and store it in /etc/acme/account.key.  If
+   you already have one from certbot, you can turn it into the right
+   form for /etc/acme/account.key using the certbot2asn1 script as
+   documented in comments at the top.  If you don't already have one,
+   you can get one with certbot, or by writing code to talk this part
+   of the ACME protocol.
+
+6. Configure the web server to serve /var/lib/acme/challenges from
+   http://probcomp-N.csail.mit.edu/.well-known/challenge, and to serve
+   HTTPS using the certificate chain at /etc/acme/domain.crt and the
+   private key at /etc/acme/domain.key.
+
+7. Run
+
+        # /usr/local/probcomp/acme/current/renew
+
+   Check the syslog to make sure it claimed to have successfully
+   renewed the test certificate.  Check to make sure
+   /var/lib/acme/certs/test-chain.pem points to a file that contains
+   two certificates -- a newly issued fake one, and the true
+   intermediate CA certificate for Let's Encrypt.
+
+8. Add a cron job to execute
+
+        /usr/local/probcomp/acme/current/renew --i-know-what-i-am-doing
+
+   every sixty days, or every month, or the first Monday of every
+   month, or whatever is necessary to get .
+
+* How it is organized:
+
+/etc/acme               static files readable only by web server and acme user
+                          (all secrets live here)
+  /account.key          ACME account private key
+  /domain.key           private key for the domain name
+  /domain.csr           certificate signing request for the domain name
+  /domain.crt           symlink to current certificate chain
+
+/var/lib/acme           dynamic files written by acme user, read by web server
+                          (no secrets live here)
+  /certs                directory of all certificates issued
+    /chain.pem          symlink to current certificate chain
+  /challenges           directory of ACME challenges, to be served by
+                          http://domain/.well-known/acme-challenge
+
+* How to update it:
+
+If necessary, commit a new version of acme_tiny.py from
+<https://github.com/diafygi/acme-tiny> with the commit id clearly
+cited in the commit message.
+
+Repeat step (1) to install a new version of this repository.
+
+If any data files or formats changed, figure out how to deal with them
+and deal with them.  I cannot help you from there.
+
+But if no data files or formats changed, then simply replace the
+symlink at /usr/local/probcomp/acme/current to point at the new
+date YYYYMMDE:
+
+        # cd /usr/local/probcomp/acme
+        # rm -f current.tmp
+        # ln -s YYYYMMDE current.tmp
+        # mv -T current.tmp current
+
+(The `-T' option to mv makes it replace the symlink, rather than
+creating a new symlink inside the directory that the symlink at
+`current' currently points to.)
