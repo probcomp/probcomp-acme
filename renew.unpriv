@@ -40,10 +40,7 @@ error () { logger -t probcomp-acme -p daemon.error ${1+"$@"}; }
 	    echo 'acme failed, check syslog' | sendmail root || :
 	    error 'certificate renewal failed'
 	fi
-	rm -f "$cert_date".tmp || :
-	rm -f "$ca_date".tmp || :
-	rm -f "$chain_date".tmp || :
-	rm -f "$chain_link".tmp || :
+	rm -f "$CERTS"/*.tmp || :
     }
     trap clean EXIT HUP INT TERM
 

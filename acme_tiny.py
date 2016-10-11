@@ -57,9 +57,9 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA):
         })
         try:
             resp = urlopen(url, data.encode('utf8'))
-            return resp.getcode(), resp.read()
+            return resp.getcode(), resp.read(), resp.info().get('Location', None)
         except IOError as e:
-            return getattr(e, "code", None), getattr(e, "read", e.__str__)()
+            return getattr(e, "code", None), getattr(e, "read", e.__str__)(), None
 
     # find domains
     log.info("Parsing CSR...")
@@ -80,7 +80,7 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA):
 
     # get the certificate domains and expiration
     log.info("Registering account...")
-    code, result = _send_signed_request(CA + "/acme/new-reg", {
+    code, result, _loc = _send_signed_request(CA + "/acme/new-reg", {
         "resource": "new-reg",
         "agreement": "https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf",
     })
@@ -96,15 +96,19 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA):
         log.info("Verifying {0}...".format(domain))
 
         # get new challenge
-        code, result = _send_signed_request(CA + "/acme/new-authz", {
+        code, result, authz_uri = _send_signed_request(CA + "/acme/new-authz", {
             "resource": "new-authz",
             "identifier": {"type": "dns", "value": domain},
         })
         if code != 201:
             raise ValueError("Error requesting challenges: {0} {1}".format(code, result))
+        authz = json.loads(result.decode('utf8'))
+        if authz['status'] == 'valid':
+            log.info('{0} already verified!'.format(domain))
+            continue
 
         # make the challenge file
-        challenge = [c for c in json.loads(result.decode('utf8'))['challenges'] if c['type'] == "http-01"][0]
+        challenge = [c for c in authz['challenges'] if c['type'] == "http-01"][0]
         token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge['token'])
         keyauthorization = "{0}.{1}".format(token, thumbprint)
         wellknown_path = os.path.join(acme_dir, token)
@@ -123,17 +127,17 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA):
                 wellknown_path, wellknown_url))
 
         # notify challenge are met
-        code, result = _send_signed_request(challenge['uri'], {
+        code, result, _loc = _send_signed_request(challenge['uri'], {
             "resource": "challenge",
             "keyAuthorization": keyauthorization,
         })
         if code != 202:
             raise ValueError("Error triggering challenge: {0} {1}".format(code, result))
 
-        # wait for challenge to be verified
+        # wait for authorization or challenge to be verified
         while True:
             try:
-                resp = urlopen(challenge['uri'])
+                resp = urlopen(authz_uri or challenge['uri'])
                 challenge_status = json.loads(resp.read().decode('utf8'))
             except IOError as e:
                 raise ValueError("Error checking challenge: {0} {1}".format(
@@ -153,7 +157,7 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA):
     proc = subprocess.Popen(["openssl", "req", "-in", csr, "-outform", "DER"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     csr_der, err = proc.communicate()
-    code, result = _send_signed_request(CA + "/acme/new-cert", {
+    code, result, _loc = _send_signed_request(CA + "/acme/new-cert", {
         "resource": "new-cert",
         "csr": _b64(csr_der),
     })
