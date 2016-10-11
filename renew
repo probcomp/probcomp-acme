@@ -6,13 +6,13 @@ set -Ceu
 # configuration.  Written by Riastradh 20161010.
 
 ACME_TINY="`dirname -- "$0"`"/acme_tiny.py
-CERTS=/var/lib/acme/certs
-CHALLENGES=/var/lib/acme/challenges
-KEYS=/etc/acme
+CERTS=/var/lib/probcomp-acme/certs
+CHALLENGES=/var/lib/probcomp-acme/challenges
+KEYS=/etc/probcomp-acme
 CA_URI=https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem
 
-info () { logger -t acme -p daemon.info ${1+"$@"}; }
-error () { logger -t acme -p daemon.error ${1+"$@"}; }
+info () { logger -t probcomp-acme -p daemon.info ${1+"$@"}; }
+error () { logger -t probcomp-acme -p daemon.error ${1+"$@"}; }
 
 (
     set -Ceu

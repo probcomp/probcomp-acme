@@ -16,39 +16,39 @@ fi
 
 domain="$1"
 
-mkdir -m 700 /etc/acme
+mkdir -m 700 /etc/probcomp-acme
 
 ok=
 
 clean ()
 {
     if [ -n "$ok" ]; then return; fi
-    rmdir /var/lib/acme/certs
-    rmdir /var/lib/acme/challenges
-    deluser --system acme	# also deletes group
-    rmdir /var/lib/acme
-    rm /etc/acme/domain.key
-    rm /etc/acme/domain.csr
-    rm /etc/acme/domain.crt
-    rmdir /etc/acme
+    rmdir /var/lib/probcomp-acme/certs
+    rmdir /var/lib/probcomp-acme/challenges
+    deluser --system probcomp-acme      # also deletes group
+    rmdir /var/lib/probcomp-acme
+    rm /etc/probcomp-acme/domain.key
+    rm /etc/probcomp-acme/domain.csr
+    rm /etc/probcomp-acme/domain.crt
+    rmdir /etc/probcomp-acme
 }
 
 trap clean EXIT HUP INT TERM
 
-adduser --system --group --home /var/lib/acme acme
+adduser --system --group --home /var/lib/probcomp-acme probcomp-acme
 
-mkdir /var/lib/acme/certs
-mkdir /var/lib/acme/challenges
-chown -R acme:acme /var/lib/acme
+mkdir /var/lib/probcomp-acme/certs
+mkdir /var/lib/probcomp-acme/challenges
+chown -R probcomp-acme:probcomp-acme /var/lib/probcomp-acme
 
-"$SCRIPTS"/gendomain -d "$domain" -k /etc/acme/domain.key \
-    -r /etc/acme/domain.csr
-chmod 640 /etc/acme/domain.key /etc/acme/domain.csr
-chgrp acme /etc/acme/domain.key /etc/acme/domain.csr
+"$SCRIPTS"/gendomain -d "$domain" -k /etc/probcomp-acme/domain.key \
+    -r /etc/probcomp-acme/domain.csr
+chmod 640 /etc/probcomp-acme/domain.key /etc/probcomp-acme/domain.csr
+chgrp probcomp-acme /etc/probcomp-acme/domain.key /etc/probcomp-acme/domain.csr
 
-ln -s /var/lib/acme/certs/chain.pem /etc/acme/domain.crt
+ln -s /var/lib/probcomp-acme/certs/chain.pem /etc/probcomp-acme/domain.crt
 
-chmod 750 /etc/acme
-chgrp acme /etc/acme
+chmod 750 /etc/probcomp-acme
+chgrp probcomp-acme /etc/probcomp-acme
 
 ok=1
