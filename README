@@ -48,7 +48,7 @@ very short.  There's no time for futzing and kludging, my friend.
 
 7. Run
 
-        # sudo -u probcomp-acme /usr/local/probcomp/acme/current/renew
+        # /usr/local/probcomp/acme/current/renew
 
    Check the syslog to make sure it claimed to have successfully
    renewed the test certificate.  Check to make sure
