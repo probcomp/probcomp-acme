@@ -23,14 +23,14 @@ ok=
 clean ()
 {
     if [ -n "$ok" ]; then return; fi
-    rmdir /var/lib/probcomp-acme/certs
-    rmdir /var/lib/probcomp-acme/challenges
+    rmdir /var/lib/probcomp-acme/certs || :
+    rmdir /var/lib/probcomp-acme/challenges || :
     deluser --system probcomp-acme      # also deletes group
-    rmdir /var/lib/probcomp-acme
+    rmdir /var/lib/probcomp-acme || :
     rm -f /etc/probcomp-acme/domain.key || :
     rm -f /etc/probcomp-acme/domain.csr || :
     rm -f /etc/probcomp-acme/domain.crt || :
-    rmdir /etc/probcomp-acme
+    rmdir /etc/probcomp-acme || :
 }
 
 trap clean EXIT HUP INT TERM
